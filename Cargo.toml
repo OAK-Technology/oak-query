@@ -1,0 +1,13 @@
+[package]
+name = "oak_query"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "oak_query"
+path = "src/lib.rs"
+
+
+[dependencies]
+sqlx = { version = "0", features = [ "runtime-async-std-rustls", "postgres", "uuid", "chrono"] }
+serde_json = "1"
