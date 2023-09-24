@@ -2,26 +2,32 @@ use serde_json::Value;
 use sqlx::{QueryBuilder, Postgres};
 
 
+pub enum BaseQuery<'a> {
+    Sql(&'a str),
+    QueryBuilder(QueryBuilder<'a, Postgres>)
+}
+
+
 #[derive(Debug)]
 pub struct Condition<'a> {
-    pub chain_operator: Option<&'a str>,
+    pub chain_opr: Option<&'a str>,
     pub column: &'a str,
-    pub equality: &'a str,
+    pub eq_opr: &'a str,
     pub value_l: Option<Value>,
     pub value_r: Option<Value>
 }
 
 impl <'a > Condition<'a> {
-    /// chain_operator: AND, OR, (may etc)
+    /// chain_opr: AND, OR, (may etc)
     /// column: column that condition belongs for
-    /// equality: >, <, >=, <=, LIKE, NOT LIKE, IN, NOT IN, BETWEEN, NOT BETWEEN and etc
+    /// eq_opr: >, <, >=, <=, LIKE, NOT LIKE, IN, NOT IN, BETWEEN, NOT BETWEEN and etc
     /// value_l and value_r: is used for BETWEN operator ex.: `WHERE sample_col BETWEEN value_l and value_r`
     /// value for other operators is value_l
-    pub fn new(chain_operator: Option<&'a str>, column: &'a str, equality: &'a str, value_l: Option<Value>, value_r: Option<Value>) -> Self {
+    pub fn new(chain_opr: Option<&'a str>, column: &'a str, eq_opr: &'a str, value_l: Option<Value>, value_r: Option<Value>) -> Self {
         Self {
-            chain_operator,
+            chain_opr,
             column,
-            equality,
+            eq_opr,
             value_l,
             value_r
         }
@@ -29,27 +35,32 @@ impl <'a > Condition<'a> {
 }
 
 pub fn condition_builder<'a>(
-    base_query: &'a str,
+    base_query: BaseQuery<'a>,
     conditions: &'a Vec<Condition<'a>>,
     middle: &'a str,
     limit: Option<i64>,
     offset: Option<i64>,
     end: &'a str
 ) -> QueryBuilder<'a, Postgres> {
-    let mut query: QueryBuilder<'_, Postgres> = QueryBuilder::new(base_query);
+    let mut query: QueryBuilder<'_, Postgres>;
+
+    match base_query {
+        BaseQuery::Sql(base_sql) => {query = QueryBuilder::new(base_sql)},
+        BaseQuery::QueryBuilder(query_builder) => {query = query_builder},
+    }
     
     for (index, cond) in conditions.iter().enumerate() {
-        if cond.equality.to_uppercase().contains("BETWEEN") {
+        if cond.eq_opr.to_uppercase().contains("BETWEEN") {
             if let (Some(value_l), Some(value_r)) = (&cond.value_l, &cond.value_r) {
-                if let Some(chain_operator) = cond.chain_operator {
-                    query.push(format!("\n    {0} {1} {2} ", chain_operator, cond.column, cond.equality));
+                if let Some(chain_opr) = cond.chain_opr {
+                    query.push(format!("\n    {0} {1} {2} ", chain_opr, cond.column, cond.eq_opr));
                     query.push_bind(value_l);
                     query.push(" AND ");
                     query.push_bind(value_r);
                 } else {
                     if index == 0 {
                         query.push(format!("\nWHERE"));
-                        query.push(format!("\n    {0} {1} ", cond.column, cond.equality));
+                        query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
                         query.push_bind(value_l);
                         query.push(" AND ");
                         query.push_bind(value_r);
@@ -58,13 +69,13 @@ pub fn condition_builder<'a>(
             }
         } else {
             if let Some(value) = &cond.value_l {
-                if let Some(chain_operator) = cond.chain_operator {
-                    query.push(format!("\n    {0} {1} {2} ", chain_operator, cond.column, cond.equality));
+                if let Some(chain_opr) = cond.chain_opr {
+                    query.push(format!("\n    {0} {1} {2} ", chain_opr, cond.column, cond.eq_opr));
                     query.push_bind(value);
                 } else {
                     if index == 0 {
                         query.push(format!("\nWHERE"));
-                        query.push(format!("\n    {0} {1} ", cond.column, cond.equality));
+                        query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
                         query.push_bind(value);
                     }
                 }
@@ -91,7 +102,7 @@ pub fn condition_builder<'a>(
 
 #[cfg(test)]
 mod tests {
-    use crate::condition::condition::{Condition, condition_builder};
+    use crate::condition::condition::{Condition, condition_builder, BaseQuery};
 
     #[test]
     fn in_without_where() {
@@ -99,7 +110,7 @@ mod tests {
         let num_list = vec![3, 5, 7];
 
         conditions.push(Condition::new(Some(""), "test_col", "IN", Some(num_list.into()), None));
-        let test_query = condition_builder("", &conditions, "", None, None, "");
+        let test_query = condition_builder(BaseQuery::Sql(""), &conditions, "", None, None, "");
 
         let result = "\n     test_col IN $1";
 
@@ -111,7 +122,7 @@ mod tests {
         let mut conditions: Vec<Condition> = Vec::new();
 
         conditions.push(Condition::new(None, "test_col", "BETWEEN", Some(5.into()), Some(24.into())));
-        let test_query = condition_builder("", &conditions, "", None, None, "");
+        let test_query = condition_builder(BaseQuery::Sql(""), &conditions, "", None, None, "");
         
         let result = "\nWHERE\n    test_col BETWEEN $1 AND $2";
 
@@ -123,7 +134,7 @@ mod tests {
         let mut conditions: Vec<Condition> = Vec::new();
 
         conditions.push(Condition::new(None, "test_col", "LIKE", Some("sample".into()), None));
-        let test_query = condition_builder("", &conditions, "", None, None, "");
+        let test_query = condition_builder(BaseQuery::Sql(""), &conditions, "", None, None, "");
         
         let result = "\nWHERE\n    test_col LIKE $1";
 
@@ -135,7 +146,7 @@ mod tests {
         let mut conditions: Vec<Condition> = Vec::new();
 
         conditions.push(Condition::new(Some(""), "test_col", "LIKE", Some("sample".into()), None));
-        let test_query = condition_builder("", &conditions, "", None, None, "");
+        let test_query = condition_builder(BaseQuery::Sql(""), &conditions, "", None, None, "");
         
         let result = "\n     test_col LIKE $1";
 
@@ -147,7 +158,7 @@ mod tests {
         let mut conditions: Vec<Condition> = Vec::new();
 
         conditions.push(Condition::new(Some("AND"), "test_col", "LIKE", Some("sample".into()), None));
-        let test_query = condition_builder("", &conditions, "", None, None, "");
+        let test_query = condition_builder(BaseQuery::Sql(""), &conditions, "", None, None, "");
         
         let result = "\n    AND test_col LIKE $1";
 
@@ -157,7 +168,7 @@ mod tests {
     #[test]
     fn empty_condition_builder() {
         let conditions: Vec<Condition> = Vec::new();
-        let test_query = condition_builder("", &conditions, "", None, None, "");
+        let test_query = condition_builder(BaseQuery::Sql(""), &conditions, "", None, None, "");
         
         assert_eq!(test_query.into_sql(), "");
     }
@@ -174,7 +185,7 @@ mod tests {
 
         let order_by = "\nORDER BY\n    id DESC";
 
-        let test_query = condition_builder("", &conditions, order_by, Some(10), Some(0), "");
+        let test_query = condition_builder(BaseQuery::Sql(""), &conditions, order_by, Some(10), Some(0), "");
         
         let result = r#"
     AND test_col LIKE $1
