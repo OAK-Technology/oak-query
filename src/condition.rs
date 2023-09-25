@@ -33,20 +33,20 @@ impl <'a > Condition<'a> {
 pub struct ConditionBuilder<'a> {
     pub base_query: BaseQuery<'a>,
     pub conditions: &'a Vec<Condition<'a>>,
-    pub middle: &'a str,
+    pub middle: Option<&'a str>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
-    pub end: &'a str
+    pub end: Option<&'a str>
 }
 
 impl <'a> ConditionBuilder <'a> {
     pub fn new(
         base_query: BaseQuery<'a>,
         conditions: &'a Vec<Condition<'a>>,
-        middle: &'a str,
+        middle: Option<&'a str>,
         limit: Option<i64>,
         offset: Option<i64>,
-        end: &'a str
+        end: Option<&'a str>
     ) -> Self {
         Self {
             base_query,
@@ -100,7 +100,9 @@ impl <'a> ConditionBuilder <'a> {
             }
         }
     
-        query.push(self.middle);
+        if let Some(middle_sql) = self.middle {
+            query.push(middle_sql);
+        }
     
         if let Some(limit) = self.limit {
             query.push("\nLIMIT ");
@@ -111,8 +113,10 @@ impl <'a> ConditionBuilder <'a> {
             query.push("\nOFFSET ");
             query.push_bind(offset);
         }
-    
-        query.push(self.end);
+        
+        if let Some(ending) = self.end {
+            query.push(format!("\n{}", ending));
+        }
     
         query
     }
@@ -129,7 +133,7 @@ mod tests {
         let num_list = vec![3, 5, 7];
 
         conditions.push(Condition::new(Some(""), "test_col", "IN", Some(num_list.into()), None));
-        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, "", None, None, "");
+        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, None, None, None, None);
 
         let result = "\n     test_col IN $1";
 
@@ -141,7 +145,7 @@ mod tests {
         let mut conditions: Vec<Condition> = Vec::new();
 
         conditions.push(Condition::new(None, "test_col", "BETWEEN", Some(5.into()), Some(24.into())));
-        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, "", None, None, "");
+        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, None, None, None, None);
         
         let result = "\nWHERE\n    test_col BETWEEN $1 AND $2";
 
@@ -153,7 +157,7 @@ mod tests {
         let mut conditions: Vec<Condition> = Vec::new();
 
         conditions.push(Condition::new(None, "test_col", "LIKE", Some("sample".into()), None));
-        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, "", None, None, "");
+        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, None, None, None, None);
         
         let result = "\nWHERE\n    test_col LIKE $1";
 
@@ -165,7 +169,7 @@ mod tests {
         let mut conditions: Vec<Condition> = Vec::new();
 
         conditions.push(Condition::new(Some(""), "test_col", "LIKE", Some("sample".into()), None));
-        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, "", None, None, "");
+        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, None, None, None, None);
         
         let result = "\n     test_col LIKE $1";
 
@@ -177,7 +181,7 @@ mod tests {
         let mut conditions: Vec<Condition> = Vec::new();
 
         conditions.push(Condition::new(Some("AND"), "test_col", "LIKE", Some("sample".into()), None));
-        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, "", None, None, "");
+        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, None, None, None, None);
         
         let result = "\n    AND test_col LIKE $1";
 
@@ -187,7 +191,7 @@ mod tests {
     #[test]
     fn empty_condition_builder() {
         let conditions: Vec<Condition> = Vec::new();
-        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, "", None, None, "");
+        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, None, None, None, None);
         
         assert_eq!(test_query.build().into_sql(), "");
     }
@@ -204,7 +208,7 @@ mod tests {
 
         let order_by = "\nORDER BY\n    id DESC";
 
-        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, order_by, Some(10), Some(0), "");
+        let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, Some(order_by), Some(10), Some(0), None);
         
         let result = r#"
     AND test_col LIKE $1

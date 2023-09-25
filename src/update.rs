@@ -8,18 +8,21 @@ use crate::{Condition, ConditionBuilder, BaseQuery};
 pub struct UpdateBuilder<'a> {
     pub table: &'a str,
     pub columns: Vec<(&'a str, Value)>,
-    pub conditions: Vec<Condition<'a>>
+    pub conditions: Vec<Condition<'a>>,
+    pub end: Option<&'a str>
 }
 
 impl <'a > UpdateBuilder<'a> {
     /// table: table name
     /// columns: will be updated
     /// conditions: for restricting modified rows
-    pub fn new(table: &'a str, columns: Vec<(&'a str, Value)>, conditions: Vec<Condition<'a>>) -> Self {
+    /// end: additional query part goes to end of update query ex.: `RETURNING id`
+    pub fn new(table: &'a str, columns: Vec<(&'a str, Value)>, conditions: Vec<Condition<'a>>, end: Option<&'a str>) -> Self {
         Self {
             table,
             columns,
-            conditions
+            conditions,
+            end
         }
     }
 
@@ -54,10 +57,10 @@ impl <'a > UpdateBuilder<'a> {
         let query_new = ConditionBuilder::new(
             BaseQuery::QueryBuilder(query), 
             &self.conditions, 
-            "", 
+            None, 
             None, 
             None,
-            ""
+            self.end
         ).build();
 
         query_new
@@ -75,7 +78,7 @@ mod tests {
     fn update_only() {
         let conditions: Vec<Condition> = Vec::new();
         let columns: Vec<(&str, Value)> = vec![("col1", 5.into()), ("col2", 3.into()), ("col3", 7.into())];
-        let test_query = UpdateBuilder::new("sample_table", columns, conditions);
+        let test_query = UpdateBuilder::new("sample_table", columns, conditions, None);
         let result = "UPDATE sample_table\n    SET col1 = $1,\n    col2 = $2,\n    col3 = $3";
 
         assert_eq!(test_query.build().into_sql(), result);
@@ -85,7 +88,7 @@ mod tests {
     fn update_with_empty_conditions() {
         let conditions: Vec<Condition> = Vec::new();
         let columns: Vec<(&str, Value)> = vec![("col1", 5.into()), ("col2", 3.into()), ("col3", 7.into())];
-        let mut test_query = UpdateBuilder::new("sample_table", columns, conditions);
+        let mut test_query = UpdateBuilder::new("sample_table", columns, conditions, None);
         let result = "UPDATE sample_table\n    SET col1 = $1,\n    col2 = $2,\n    col3 = $3";
 
         assert_eq!(test_query.build_all().into_sql(), result);
@@ -97,8 +100,20 @@ mod tests {
         conditions.push(Condition::new(None, "id", "=", Some(5.into()), None));
 
         let columns: Vec<(&str, Value)> = vec![("col1", 5.into()), ("col2", 3.into()), ("col3", 7.into())];
-        let mut test_query = UpdateBuilder::new("sample_table", columns, conditions);
+        let mut test_query = UpdateBuilder::new("sample_table", columns, conditions, None);
         let result = "UPDATE sample_table\n    SET col1 = $1,\n    col2 = $2,\n    col3 = $3\nWHERE\n    id = $4";
+
+        assert_eq!(test_query.build_all().into_sql(), result);
+    }
+
+    #[test]
+    fn update_with_conditions_with_end() {
+        let mut conditions: Vec<Condition> = Vec::new();
+        conditions.push(Condition::new(None, "id", "=", Some(5.into()), None));
+
+        let columns: Vec<(&str, Value)> = vec![("col1", 5.into()), ("col2", 3.into()), ("col3", 7.into())];
+        let mut test_query = UpdateBuilder::new("sample_table", columns, conditions, Some("RETURNING id"));
+        let result = "UPDATE sample_table\n    SET col1 = $1,\n    col2 = $2,\n    col3 = $3\nWHERE\n    id = $4\nRETURNING id";
 
         assert_eq!(test_query.build_all().into_sql(), result);
     }
