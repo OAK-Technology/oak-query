@@ -101,7 +101,7 @@ impl <'a> ConditionBuilder <'a> {
         }
     
         if let Some(middle_sql) = self.middle {
-            query.push(middle_sql);
+            query.push(format!("\n{}", middle_sql));
         }
     
         if let Some(limit) = self.limit {
@@ -206,7 +206,7 @@ mod tests {
         // This condition will be ignored because there is no chain operator
         conditions.push(Condition::new(None, "other_col", "=", Some(7.into()), None));
 
-        let order_by = "\nORDER BY\n    id DESC";
+        let order_by = "ORDER BY\n    id DESC";
 
         let test_query = ConditionBuilder::new(BaseQuery::Sql(""), &conditions, Some(order_by), Some(10), Some(0), None);
         

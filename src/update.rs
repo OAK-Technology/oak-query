@@ -27,27 +27,31 @@ impl <'a > UpdateBuilder<'a> {
     }
 
     pub fn build(&self) -> QueryBuilder<'_, Postgres> {
-        let base_query = format!("UPDATE {}", self.table);
-        let mut query: QueryBuilder<'_, Postgres> = QueryBuilder::new(base_query);
-        
-        for (index, column) in self.columns.iter().enumerate() {
-            if index == 0 {
-                query.push(format!("\n    SET {0} = ", column.0));
-                query.push_bind(&column.1);
-                
-                if index < self.columns.len() - 1 {
-                    query.push(",");
-                }
-            } else {
-                query.push(format!("\n    {0} = ", column.0));
-                query.push_bind(&column.1);
-                
-                if index < self.columns.len() - 1 {
-                    query.push(",");
+        let mut query: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
+
+        if self.columns.len() > 0 {
+            let base_query = format!("UPDATE {}", self.table);
+            query.push(base_query);
+            
+            for (index, column) in self.columns.iter().enumerate() {
+                if index == 0 {
+                    query.push(format!("\n    SET {0} = ", column.0));
+                    query.push_bind(&column.1);
+                    
+                    if index < self.columns.len() - 1 {
+                        query.push(",");
+                    }
+                } else {
+                    query.push(format!("\n    {0} = ", column.0));
+                    query.push_bind(&column.1);
+                    
+                    if index < self.columns.len() - 1 {
+                        query.push(",");
+                    }
                 }
             }
         }
-    
+
         query
     }
 
