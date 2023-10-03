@@ -1,8 +1,13 @@
 use serde_json::Value;
+use chrono::NaiveDateTime;
 use sqlx::{QueryBuilder, Postgres};
 
+pub enum ColumnType {
+    OptPrimitive(Option<Value>),
+    OptDateTime(Option<NaiveDateTime>)
+}
 
-pub type Row = Vec<Option<Value>>;
+pub type Row = Vec<ColumnType>;
 
 pub struct InsertBuilder<'a> {
     pub table: &'a str,
@@ -46,8 +51,18 @@ impl <'a> InsertBuilder<'a> {
 
                 for (col_index, value) in (*row).iter().enumerate() {
                     match value {
-                        Some(v) => { query.push_bind(v); },
-                        None => { query.push("default"); }
+                        ColumnType::OptPrimitive(opt) => {
+                            match opt {
+                                Some(v) => { query.push_bind(v); },
+                                None => { query.push("default"); }
+                            }
+                        },
+                        ColumnType::OptDateTime(opt) => {
+                            match opt {
+                                Some(v) => { query.push_bind(v); },
+                                None => { query.push("default"); }
+                            }
+                        },
                     }
 
                     if col_index < (*row).len() - 1 {
@@ -74,7 +89,7 @@ impl <'a> InsertBuilder<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{InsertBuilder, Row};
+    use crate::{InsertBuilder, Row, ColumnType};
     
     #[test]
     fn insert_one_column_one_row<'a>() {
@@ -83,7 +98,7 @@ mod tests {
         let mut rows: Vec<&Row> = Vec::new();
 
         columns.push("column1");
-        row1.push(Some("title1".into()));
+        row1.push(ColumnType::OptPrimitive(Some("title1".into())));
         rows.push(&row1);
 
         let insert_query = InsertBuilder::new("sample_table", &columns, &rows, None);
@@ -100,8 +115,8 @@ mod tests {
         let mut rows: Vec<&Row> = Vec::new();
 
         columns.push("column1");
-        row1.push(Some("title1".into()));
-        row2.push(Some("title2".into()));
+        row1.push(ColumnType::OptPrimitive(Some("title1".into())));
+        row2.push(ColumnType::OptPrimitive(Some("title2".into())));
         rows.push(&row1);
         rows.push(&row2);
 
@@ -119,8 +134,8 @@ mod tests {
 
         columns.push("column1");
         columns.push("column2");
-        row1.push(Some("title1".into()));
-        row1.push(Some(32.into()));
+        row1.push(ColumnType::OptPrimitive(Some("title1".into())));
+        row1.push(ColumnType::OptPrimitive(Some(32.into())));
         rows.push(&row1);
 
         let insert_query = InsertBuilder::new("sample_table", &columns, &rows, None);
@@ -143,21 +158,21 @@ mod tests {
         columns.push("column2");
         columns.push("column3");
 
-        row1.push(Some("title1".into()));
-        row1.push(Some(32.into()));
-        row1.push(Some("2023-01-01".into()));
+        row1.push(ColumnType::OptPrimitive(Some("title1".into())));
+        row1.push(ColumnType::OptPrimitive(Some(32.into())));
+        row1.push(ColumnType::OptPrimitive(Some("2023-01-01".into())));
 
-        row2.push(Some("title2".into()));
-        row2.push(Some(64.into()));
-        row2.push(Some("2023-02-02".into()));
+        row2.push(ColumnType::OptPrimitive(Some("title2".into())));
+        row2.push(ColumnType::OptPrimitive(Some(64.into())));
+        row2.push(ColumnType::OptPrimitive(Some("2023-02-02".into())));
 
-        row3.push(Some("title3".into()));
-        row3.push(Some(18.into()));
-        row3.push(Some("2023-03-03".into()));
+        row3.push(ColumnType::OptPrimitive(Some("title3".into())));
+        row3.push(ColumnType::OptPrimitive(Some(18.into())));
+        row3.push(ColumnType::OptPrimitive(Some("2023-03-03".into())));
 
-        row4.push(Some("title4".into()));
-        row4.push(Some(64.into()));
-        row4.push(Some("2023-04-04".into()));
+        row4.push(ColumnType::OptPrimitive(Some("title4".into())));
+        row4.push(ColumnType::OptPrimitive(Some(64.into())));
+        row4.push(ColumnType::OptPrimitive(Some("2023-04-04".into())));
 
         rows.push(&row1);
         rows.push(&row2);
@@ -184,19 +199,19 @@ mod tests {
         columns.push("column2");
         columns.push("column3");
 
-        row1.push(Some("title1".into()));
-        row1.push(Some(32.into()));
-        row1.push(Some("2023-01-01".into()));
+        row1.push(ColumnType::OptPrimitive(Some("title1".into())));
+        row1.push(ColumnType::OptPrimitive(Some(32.into())));
+        row1.push(ColumnType::OptPrimitive(Some("2023-01-01".into())));
 
-        row2.push(Some("title2".into()));
-        row2.push(Some("2023-02-02".into()));
+        row2.push(ColumnType::OptPrimitive(Some("title2".into())));
+        row2.push(ColumnType::OptPrimitive(Some("2023-02-02".into())));
 
-        row3.push(Some("title3".into()));
-        row3.push(Some(18.into()));
-        row4.push(Some("2023-03-03".into()));
+        row3.push(ColumnType::OptPrimitive(Some("title3".into())));
+        row3.push(ColumnType::OptPrimitive(Some(18.into())));
+        row4.push(ColumnType::OptPrimitive(Some("2023-03-03".into())));
 
-        row4.push(Some("title4".into()));
-        row4.push(Some(64.into()));
+        row4.push(ColumnType::OptPrimitive(Some("title4".into())));
+        row4.push(ColumnType::OptPrimitive(Some(64.into())));
 
         rows.push(&row1);
         rows.push(&row2);
@@ -223,21 +238,21 @@ mod tests {
         columns.push("column2");
         columns.push("column3");
 
-        row1.push(Some("title1".into()));
-        row1.push(Some(32.into()));
-        row1.push(Some("2023-01-01".into()));
+        row1.push(ColumnType::OptPrimitive(Some("title1".into())));
+        row1.push(ColumnType::OptPrimitive(Some(32.into())));
+        row1.push(ColumnType::OptPrimitive(Some("2023-01-01".into())));
 
-        row2.push(Some("title2".into()));
-        row2.push(None);
-        row2.push(Some("2023-02-02".into()));
+        row2.push(ColumnType::OptPrimitive(Some("title2".into())));
+        row2.push(ColumnType::OptPrimitive(None));
+        row2.push(ColumnType::OptPrimitive(Some("2023-02-02".into())));
 
-        row3.push(Some("title3".into()));
-        row3.push(Some(18.into()));
-        row3.push(Some("2023-03-03".into()));
+        row3.push(ColumnType::OptPrimitive(Some("title3".into())));
+        row3.push(ColumnType::OptPrimitive(Some(18.into())));
+        row3.push(ColumnType::OptPrimitive(Some("2023-03-03".into())));
 
-        row4.push(Some("title4".into()));
-        row4.push(Some(64.into()));
-        row4.push(None);
+        row4.push(ColumnType::OptPrimitive(Some("title4".into())));
+        row4.push(ColumnType::OptPrimitive(Some(64.into())));
+        row4.push(ColumnType::OptPrimitive(None));
 
         rows.push(&row1);
         rows.push(&row2);
@@ -262,13 +277,13 @@ mod tests {
         columns.push("column2");
         columns.push("column3");
 
-        row1.push(Some("title1".into()));
-        row1.push(Some(32.into()));
-        row1.push(Some("2023-01-01".into()));
+        row1.push(ColumnType::OptPrimitive(Some("title1".into())));
+        row1.push(ColumnType::OptPrimitive(Some(32.into())));
+        row1.push(ColumnType::OptPrimitive(Some("2023-01-01".into())));
 
-        row2.push(Some("title2".into()));
-        row2.push(Some(64.into()));
-        row2.push(Some("2023-02-02".into()));
+        row2.push(ColumnType::OptPrimitive(Some("title2".into())));
+        row2.push(ColumnType::OptPrimitive(Some(64.into())));
+        row2.push(ColumnType::OptPrimitive(Some("2023-02-02".into())));
 
         rows.push(&row1);
         rows.push(&row2);
