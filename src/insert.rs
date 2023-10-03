@@ -2,17 +2,17 @@ use serde_json::Value;
 use sqlx::{QueryBuilder, Postgres};
 
 
-pub type InsertValues = Vec<Option<Value>>;
+pub type Row = Vec<Option<Value>>;
 
 pub struct InsertBuilder<'a> {
     pub table: &'a str,
     pub columns: &'a Vec<&'a str>,
-    pub rows: &'a Vec<&'a InsertValues>,
+    pub rows: &'a Vec<&'a Row>,
     pub last_part: Option<&'a str>
 }
 
 impl <'a> InsertBuilder<'a> {
-    pub fn new(table: &'a str, columns: &'a Vec<&'a str>, rows: &'a Vec<&'a InsertValues>, last_part: Option<&'a str>) -> Self {
+    pub fn new(table: &'a str, columns: &'a Vec<&'a str>, rows: &'a Vec<&'a Row>, last_part: Option<&'a str>) -> Self {
         Self {
             table,
             columns,
@@ -74,13 +74,13 @@ impl <'a> InsertBuilder<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{InsertBuilder, InsertValues};
+    use crate::{InsertBuilder, Row};
     
     #[test]
     fn insert_one_column_one_row<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
-        let mut row1: InsertValues = Vec::new();
-        let mut rows: Vec<&InsertValues> = Vec::new();
+        let mut row1: Row = Vec::new();
+        let mut rows: Vec<&Row> = Vec::new();
 
         columns.push("column1");
         row1.push(Some("title1".into()));
@@ -95,9 +95,9 @@ mod tests {
     #[test]
     fn insert_one_column_two_rows<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
-        let mut row1: InsertValues = Vec::new();
-        let mut row2: InsertValues = Vec::new();
-        let mut rows: Vec<&InsertValues> = Vec::new();
+        let mut row1: Row = Vec::new();
+        let mut row2: Row = Vec::new();
+        let mut rows: Vec<&Row> = Vec::new();
 
         columns.push("column1");
         row1.push(Some("title1".into()));
@@ -114,8 +114,8 @@ mod tests {
     #[test]
     fn insert_two_column_one_row<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
-        let mut row1: InsertValues = Vec::new();
-        let mut rows: Vec<&InsertValues> = Vec::new();
+        let mut row1: Row = Vec::new();
+        let mut rows: Vec<&Row> = Vec::new();
 
         columns.push("column1");
         columns.push("column2");
@@ -132,12 +132,12 @@ mod tests {
     #[test]
     fn insert_three_column_multi_rows<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
-        let mut row1: InsertValues = Vec::new();
-        let mut row2: InsertValues = Vec::new();
-        let mut row3: InsertValues = Vec::new();
-        let mut row4: InsertValues = Vec::new();
+        let mut row1: Row = Vec::new();
+        let mut row2: Row = Vec::new();
+        let mut row3: Row = Vec::new();
+        let mut row4: Row = Vec::new();
 
-        let mut rows: Vec<&InsertValues> = Vec::new();
+        let mut rows: Vec<&Row> = Vec::new();
 
         columns.push("column1");
         columns.push("column2");
@@ -173,12 +173,12 @@ mod tests {
     #[test]
     fn insert_three_column_multi_rows_with_wrong_rows<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
-        let mut row1: InsertValues = Vec::new();
-        let mut row2: InsertValues = Vec::new();
-        let mut row3: InsertValues = Vec::new();
-        let mut row4: InsertValues = Vec::new();
+        let mut row1: Row = Vec::new();
+        let mut row2: Row = Vec::new();
+        let mut row3: Row = Vec::new();
+        let mut row4: Row = Vec::new();
 
-        let mut rows: Vec<&InsertValues> = Vec::new();
+        let mut rows: Vec<&Row> = Vec::new();
 
         columns.push("column1");
         columns.push("column2");
@@ -212,12 +212,12 @@ mod tests {
     #[test]
     fn insert_three_column_multi_rows_with_none_values<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
-        let mut row1: InsertValues = Vec::new();
-        let mut row2: InsertValues = Vec::new();
-        let mut row3: InsertValues = Vec::new();
-        let mut row4: InsertValues = Vec::new();
+        let mut row1: Row = Vec::new();
+        let mut row2: Row = Vec::new();
+        let mut row3: Row = Vec::new();
+        let mut row4: Row = Vec::new();
 
-        let mut rows: Vec<&InsertValues> = Vec::new();
+        let mut rows: Vec<&Row> = Vec::new();
 
         columns.push("column1");
         columns.push("column2");
@@ -254,9 +254,9 @@ mod tests {
     #[test]
     fn insert_three_column_two_rows_with_last_part<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
-        let mut row1: InsertValues = Vec::new();
-        let mut row2: InsertValues = Vec::new();
-        let mut rows: Vec<&InsertValues> = Vec::new();
+        let mut row1: Row = Vec::new();
+        let mut row2: Row = Vec::new();
+        let mut rows: Vec<&Row> = Vec::new();
 
         columns.push("column1");
         columns.push("column2");
