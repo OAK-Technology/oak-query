@@ -45,7 +45,10 @@ impl <'a> InsertBuilder<'a> {
                 query.push("       (");
 
                 for (col_index, value) in (*row).iter().enumerate() {
-                    query.push_bind(value);
+                    match value {
+                        Some(v) => { query.push_bind(v); },
+                        None => { query.push("default"); }
+                    }
 
                     if col_index < (*row).len() - 1 {
                         query.push(", ");
@@ -202,6 +205,47 @@ mod tests {
 
         let insert_query = InsertBuilder::new("sample_table", &columns, &rows, None);
         let result = "INSERT INTO sample_table(column1, column2, column3)\nVALUES\n       ($1, $2, $3),\n       ($4, $5, $6)\n";
+
+        assert_eq!(insert_query.build().into_sql(), result);
+    }
+    
+    #[test]
+    fn insert_three_column_multi_rows_with_none_values<'a>() {
+        let mut columns: Vec<&'a str> = Vec::new();
+        let mut row1: InsertValues = Vec::new();
+        let mut row2: InsertValues = Vec::new();
+        let mut row3: InsertValues = Vec::new();
+        let mut row4: InsertValues = Vec::new();
+
+        let mut rows: Vec<&InsertValues> = Vec::new();
+
+        columns.push("column1");
+        columns.push("column2");
+        columns.push("column3");
+
+        row1.push(Some("title1".into()));
+        row1.push(Some(32.into()));
+        row1.push(Some("2023-01-01".into()));
+
+        row2.push(Some("title2".into()));
+        row2.push(None);
+        row2.push(Some("2023-02-02".into()));
+
+        row3.push(Some("title3".into()));
+        row3.push(Some(18.into()));
+        row3.push(Some("2023-03-03".into()));
+
+        row4.push(Some("title4".into()));
+        row4.push(Some(64.into()));
+        row4.push(None);
+
+        rows.push(&row1);
+        rows.push(&row2);
+        rows.push(&row3);
+        rows.push(&row4);
+
+        let insert_query = InsertBuilder::new("sample_table", &columns, &rows, None);
+        let result = "INSERT INTO sample_table(column1, column2, column3)\nVALUES\n       ($1, $2, $3),\n       ($4, default, $5),\n       ($6, $7, $8),\n       ($9, $10, default)\n";
 
         assert_eq!(insert_query.build().into_sql(), result);
     }
