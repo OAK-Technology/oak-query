@@ -1,11 +1,6 @@
-use serde_json::Value;
-use chrono::NaiveDateTime;
 use sqlx::{QueryBuilder, Postgres};
+use crate::ColumnType;
 
-pub enum ColumnType {
-    OptPrimitive(Option<Value>),
-    OptDateTime(Option<NaiveDateTime>)
-}
 
 pub type Row = Vec<ColumnType>;
 
