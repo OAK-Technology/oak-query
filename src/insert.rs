@@ -1,6 +1,5 @@
-use sqlx::{QueryBuilder, Postgres};
 use crate::ColumnType;
-
+use sqlx::{Postgres, QueryBuilder};
 
 pub type Row = Vec<ColumnType>;
 
@@ -8,16 +7,21 @@ pub struct InsertBuilder<'a> {
     pub table: &'a str,
     pub columns: &'a Vec<&'a str>,
     pub rows: &'a Vec<&'a Row>,
-    pub last_part: Option<&'a str>
+    pub last_part: Option<&'a str>,
 }
 
-impl <'a> InsertBuilder<'a> {
-    pub fn new(table: &'a str, columns: &'a Vec<&'a str>, rows: &'a Vec<&'a Row>, last_part: Option<&'a str>) -> Self {
+impl<'a> InsertBuilder<'a> {
+    pub fn new(
+        table: &'a str,
+        columns: &'a Vec<&'a str>,
+        rows: &'a Vec<&'a Row>,
+        last_part: Option<&'a str>,
+    ) -> Self {
         Self {
             table,
             columns,
             rows,
-            last_part
+            last_part,
         }
     }
 
@@ -41,21 +45,25 @@ impl <'a> InsertBuilder<'a> {
         query.push("VALUES\n");
 
         for (row_index, row) in self.rows.iter().enumerate() {
-            if self.columns.len() == (*row).len()  {
+            if self.columns.len() == (*row).len() {
                 query.push("       (");
 
                 for (col_index, value) in (*row).iter().enumerate() {
                     match value {
-                        ColumnType::OptPrimitive(opt) => {
-                            match opt {
-                                Some(v) => { query.push_bind(v); },
-                                None => { query.push("default"); }
+                        ColumnType::OptPrimitive(opt) => match opt {
+                            Some(v) => {
+                                query.push_bind(v);
+                            }
+                            None => {
+                                query.push("default");
                             }
                         },
-                        ColumnType::OptDateTime(opt) => {
-                            match opt {
-                                Some(v) => { query.push_bind(v); },
-                                None => { query.push("default"); }
+                        ColumnType::OptDateTime(opt) => match opt {
+                            Some(v) => {
+                                query.push_bind(v);
+                            }
+                            None => {
+                                query.push("default");
                             }
                         },
                     }
@@ -81,11 +89,10 @@ impl <'a> InsertBuilder<'a> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::{InsertBuilder, Row, ColumnType};
-    
+    use crate::{ColumnType, InsertBuilder, Row};
+
     #[test]
     fn insert_one_column_one_row<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
@@ -101,7 +108,7 @@ mod tests {
 
         assert_eq!(insert_query.build().into_sql(), result);
     }
-    
+
     #[test]
     fn insert_one_column_two_rows<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
@@ -120,7 +127,7 @@ mod tests {
 
         assert_eq!(insert_query.build().into_sql(), result);
     }
-    
+
     #[test]
     fn insert_two_column_one_row<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
@@ -138,7 +145,7 @@ mod tests {
 
         assert_eq!(insert_query.build().into_sql(), result);
     }
-    
+
     #[test]
     fn insert_three_column_multi_rows<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
@@ -179,7 +186,7 @@ mod tests {
 
         assert_eq!(insert_query.build().into_sql(), result);
     }
-    
+
     #[test]
     fn insert_three_column_multi_rows_with_wrong_rows<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
@@ -218,7 +225,7 @@ mod tests {
 
         assert_eq!(insert_query.build().into_sql(), result);
     }
-    
+
     #[test]
     fn insert_three_column_multi_rows_with_none_values<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
@@ -260,7 +267,6 @@ mod tests {
         assert_eq!(insert_query.build().into_sql(), result);
     }
 
-    
     #[test]
     fn insert_three_column_two_rows_with_last_part<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
@@ -283,7 +289,8 @@ mod tests {
         rows.push(&row1);
         rows.push(&row2);
 
-        let insert_query = InsertBuilder::new("sample_table", &columns, &rows, Some("RETURNING id"));
+        let insert_query =
+            InsertBuilder::new("sample_table", &columns, &rows, Some("RETURNING id"));
         let result = "INSERT INTO sample_table(column1, column2, column3)\nVALUES\n       ($1, $2, $3),\n       ($4, $5, $6)\nRETURNING id\n";
 
         assert_eq!(insert_query.build().into_sql(), result);
