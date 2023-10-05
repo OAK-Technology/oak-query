@@ -74,28 +74,22 @@ impl <'a> ConditionBuilder <'a> {
                         query.push_bind(value_l);
                         query.push(" AND ");
                         query.push_bind(value_r);
-                    } else {
-                        if index == 0 {
-                            query.push(format!("\nWHERE"));
-                            query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
-                            query.push_bind(value_l);
-                            query.push(" AND ");
-                            query.push_bind(value_r);
-                        }
+                    } else if index == 0 {
+                        query.push("\nWHERE");
+                        query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
+                        query.push_bind(value_l);
+                        query.push(" AND ");
+                        query.push_bind(value_r);
                     }
                 }
-            } else {
-                if let Some(value) = &cond.value_l {
-                    if let Some(chain_opr) = cond.chain_opr {
-                        query.push(format!("\n    {0} {1} {2} ", chain_opr, cond.column, cond.eq_opr));
-                        query.push_bind(value);
-                    } else {
-                        if index == 0 {
-                            query.push(format!("\nWHERE"));
-                            query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
-                            query.push_bind(value);
-                        }
-                    }
+            } else if let Some(value) = &cond.value_l {
+                if let Some(chain_opr) = cond.chain_opr {
+                    query.push(format!("\n    {0} {1} {2} ", chain_opr, cond.column, cond.eq_opr));
+                    query.push_bind(value);
+                } else if index == 0 {
+                    query.push("\nWHERE");
+                    query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
+                    query.push_bind(value);
                 }
             }
         }

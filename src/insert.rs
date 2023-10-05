@@ -24,7 +24,7 @@ impl <'a> InsertBuilder<'a> {
     pub fn build(self) -> QueryBuilder<'a, Postgres> {
         let mut query: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
 
-        if self.rows.len() == 0 {
+        if self.rows.is_empty() {
             return query;
         }
 

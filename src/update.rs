@@ -38,7 +38,7 @@ impl <'a > UpdateBuilder<'a> {
     pub fn build(&self) -> QueryBuilder<'_, Postgres> {
         let mut query: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
 
-        if self.columns.len() > 0 {
+        if !self.columns.is_empty() {
             let base_query = format!("UPDATE {}", self.table);
             query.push(base_query);
             
