@@ -95,12 +95,13 @@ mod tests {
 
     #[test]
     fn update_only() {
-        let conditions: Vec<Condition> = Vec::new();
         let columns: Vec<Column> = vec![
             ("col1", UpdColumnType::Primitive(5.into())),
             ("col2", UpdColumnType::Primitive(3.into())),
             ("col3", UpdColumnType::Primitive(7.into()))
         ];
+
+        let conditions: Vec<Condition> = Vec::new();
         let test_query = UpdateBuilder::new("sample_table", columns, conditions, None);
         let result = "UPDATE sample_table\n    SET col1 = $1,\n    col2 = $2,\n    col3 = $3";
 
@@ -109,12 +110,13 @@ mod tests {
 
     #[test]
     fn update_with_empty_conditions() {
-        let conditions: Vec<Condition> = Vec::new();
         let columns: Vec<Column> = vec![
             ("col1", UpdColumnType::Primitive(5.into())),
             ("col2", UpdColumnType::Primitive(3.into())),
             ("col3", UpdColumnType::Primitive(7.into()))
         ];
+
+        let conditions: Vec<Condition> = Vec::new();
         let mut test_query = UpdateBuilder::new("sample_table", columns, conditions, None);
         let result = "UPDATE sample_table\n    SET col1 = $1,\n    col2 = $2,\n    col3 = $3";
 
