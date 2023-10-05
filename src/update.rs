@@ -91,7 +91,22 @@ impl <'a > UpdateBuilder<'a> {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
+
     use crate::{UpdateBuilder, Condition, Column, UpdColumnType};
+
+    #[test]
+    fn update_datetime() {
+        let columns: Vec<Column> = vec![
+            ("col1", UpdColumnType::DateTime(Utc::now().naive_utc())),
+        ];
+
+        let conditions: Vec<Condition> = Vec::new();
+        let test_query = UpdateBuilder::new("sample_table", columns, conditions, None);
+        let result = "UPDATE sample_table\n    SET col1 = $1";
+
+        assert_eq!(test_query.build().into_sql(), result);
+    }
 
     #[test]
     fn update_only() {
