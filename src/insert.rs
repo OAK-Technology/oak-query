@@ -6,7 +6,7 @@ pub type Row = Vec<ColumnType>;
 pub struct InsertBuilder<'a> {
     pub table: &'a str,
     pub columns: &'a Vec<&'a str>,
-    pub rows: &'a Vec<&'a Row>,
+    pub rows: &'a Vec<Row>,
     pub last_part: Option<&'a str>,
 }
 
@@ -14,7 +14,7 @@ impl<'a> InsertBuilder<'a> {
     pub fn new(
         table: &'a str,
         columns: &'a Vec<&'a str>,
-        rows: &'a Vec<&'a Row>,
+        rows: &'a Vec<Row>,
         last_part: Option<&'a str>,
     ) -> Self {
         Self {
@@ -66,6 +66,14 @@ impl<'a> InsertBuilder<'a> {
                                 query.push("default");
                             }
                         },
+                        ColumnType::OptDate(opt) => match opt {
+                            Some(v) => {
+                                query.push_bind(v);
+                            }
+                            None => {
+                                query.push("default");
+                            }
+                        }
                     }
 
                     if col_index < (*row).len() - 1 {
@@ -97,11 +105,11 @@ mod tests {
     fn insert_one_column_one_row<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
         let mut row1: Row = Vec::new();
-        let mut rows: Vec<&Row> = Vec::new();
+        let mut rows: Vec<Row> = Vec::new();
 
         columns.push("column1");
         row1.push(ColumnType::OptPrimitive(Some("title1".into())));
-        rows.push(&row1);
+        rows.push(row1);
 
         let insert_query = InsertBuilder::new("sample_table", &columns, &rows, None);
         let result = "INSERT INTO sample_table(column1)\nVALUES\n       ($1)\n";
@@ -114,13 +122,13 @@ mod tests {
         let mut columns: Vec<&'a str> = Vec::new();
         let mut row1: Row = Vec::new();
         let mut row2: Row = Vec::new();
-        let mut rows: Vec<&Row> = Vec::new();
+        let mut rows: Vec<Row> = Vec::new();
 
         columns.push("column1");
         row1.push(ColumnType::OptPrimitive(Some("title1".into())));
         row2.push(ColumnType::OptPrimitive(Some("title2".into())));
-        rows.push(&row1);
-        rows.push(&row2);
+        rows.push(row1);
+        rows.push(row2);
 
         let insert_query = InsertBuilder::new("sample_table", &columns, &rows, None);
         let result = "INSERT INTO sample_table(column1)\nVALUES\n       ($1),\n       ($2)\n";
@@ -132,13 +140,13 @@ mod tests {
     fn insert_two_column_one_row<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
         let mut row1: Row = Vec::new();
-        let mut rows: Vec<&Row> = Vec::new();
+        let mut rows: Vec<Row> = Vec::new();
 
         columns.push("column1");
         columns.push("column2");
         row1.push(ColumnType::OptPrimitive(Some("title1".into())));
         row1.push(ColumnType::OptPrimitive(Some(32.into())));
-        rows.push(&row1);
+        rows.push(row1);
 
         let insert_query = InsertBuilder::new("sample_table", &columns, &rows, None);
         let result = "INSERT INTO sample_table(column1, column2)\nVALUES\n       ($1, $2)\n";
@@ -154,7 +162,7 @@ mod tests {
         let mut row3: Row = Vec::new();
         let mut row4: Row = Vec::new();
 
-        let mut rows: Vec<&Row> = Vec::new();
+        let mut rows: Vec<Row> = Vec::new();
 
         columns.push("column1");
         columns.push("column2");
@@ -176,10 +184,10 @@ mod tests {
         row4.push(ColumnType::OptPrimitive(Some(64.into())));
         row4.push(ColumnType::OptPrimitive(Some("2023-04-04".into())));
 
-        rows.push(&row1);
-        rows.push(&row2);
-        rows.push(&row3);
-        rows.push(&row4);
+        rows.push(row1);
+        rows.push(row2);
+        rows.push(row3);
+        rows.push(row4);
 
         let insert_query = InsertBuilder::new("sample_table", &columns, &rows, None);
         let result = "INSERT INTO sample_table(column1, column2, column3)\nVALUES\n       ($1, $2, $3),\n       ($4, $5, $6),\n       ($7, $8, $9),\n       ($10, $11, $12)\n";
@@ -190,12 +198,12 @@ mod tests {
     #[test]
     fn insert_three_column_multi_rows_with_wrong_rows<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
+        let mut rows: Vec<Row> = Vec::new();
+
         let mut row1: Row = Vec::new();
         let mut row2: Row = Vec::new();
         let mut row3: Row = Vec::new();
         let mut row4: Row = Vec::new();
-
-        let mut rows: Vec<&Row> = Vec::new();
 
         columns.push("column1");
         columns.push("column2");
@@ -215,10 +223,10 @@ mod tests {
         row4.push(ColumnType::OptPrimitive(Some("title4".into())));
         row4.push(ColumnType::OptPrimitive(Some(64.into())));
 
-        rows.push(&row1);
-        rows.push(&row2);
-        rows.push(&row3);
-        rows.push(&row4);
+        rows.push(row1);
+        rows.push(row2);
+        rows.push(row3);
+        rows.push(row4);
 
         let insert_query = InsertBuilder::new("sample_table", &columns, &rows, None);
         let result = "INSERT INTO sample_table(column1, column2, column3)\nVALUES\n       ($1, $2, $3),\n       ($4, $5, $6)\n";
@@ -229,12 +237,12 @@ mod tests {
     #[test]
     fn insert_three_column_multi_rows_with_none_values<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
+        let mut rows: Vec<Row> = Vec::new();
+
         let mut row1: Row = Vec::new();
         let mut row2: Row = Vec::new();
         let mut row3: Row = Vec::new();
         let mut row4: Row = Vec::new();
-
-        let mut rows: Vec<&Row> = Vec::new();
 
         columns.push("column1");
         columns.push("column2");
@@ -256,10 +264,10 @@ mod tests {
         row4.push(ColumnType::OptPrimitive(Some(64.into())));
         row4.push(ColumnType::OptPrimitive(None));
 
-        rows.push(&row1);
-        rows.push(&row2);
-        rows.push(&row3);
-        rows.push(&row4);
+        rows.push(row1);
+        rows.push(row2);
+        rows.push(row3);
+        rows.push(row4);
 
         let insert_query = InsertBuilder::new("sample_table", &columns, &rows, None);
         let result = "INSERT INTO sample_table(column1, column2, column3)\nVALUES\n       ($1, $2, $3),\n       ($4, default, $5),\n       ($6, $7, $8),\n       ($9, $10, default)\n";
@@ -270,9 +278,10 @@ mod tests {
     #[test]
     fn insert_three_column_two_rows_with_last_part<'a>() {
         let mut columns: Vec<&'a str> = Vec::new();
+        let mut rows: Vec<Row> = Vec::new();
+
         let mut row1: Row = Vec::new();
         let mut row2: Row = Vec::new();
-        let mut rows: Vec<&Row> = Vec::new();
 
         columns.push("column1");
         columns.push("column2");
@@ -286,8 +295,8 @@ mod tests {
         row2.push(ColumnType::OptPrimitive(Some(64.into())));
         row2.push(ColumnType::OptPrimitive(Some("2023-02-02".into())));
 
-        rows.push(&row1);
-        rows.push(&row2);
+        rows.push(row1);
+        rows.push(row2);
 
         let insert_query =
             InsertBuilder::new("sample_table", &columns, &rows, Some("RETURNING id"));

@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, NaiveDate};
 use serde_json::Value;
 use sqlx::{Postgres, QueryBuilder};
 
@@ -7,7 +7,9 @@ pub enum BaseQuery<'a> {
     QueryBuilder(QueryBuilder<'a, Postgres>),
 }
 
+#[derive(Clone)]
 pub enum ColumnType {
     OptPrimitive(Option<Value>),
     OptDateTime(Option<NaiveDateTime>),
+    OptDate(Option<NaiveDate>),
 }

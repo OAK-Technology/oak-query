@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, NaiveDate};
 use serde_json::Value;
 use sqlx::{Postgres, QueryBuilder};
 
@@ -8,6 +8,7 @@ use crate::{BaseQuery, Condition, ConditionBuilder};
 pub enum UpdColumnType {
     Primitive(Value),
     DateTime(NaiveDateTime),
+    Date(NaiveDate),
 }
 
 pub type Column<'a> = (&'a str, UpdColumnType);
@@ -57,6 +58,9 @@ impl<'a> UpdateBuilder<'a> {
                         UpdColumnType::DateTime(datetime) => {
                             query.push_bind(datetime);
                         }
+                        UpdColumnType::Date(date) => {
+                            query.push_bind(date);
+                        },
                     }
 
                     if index < self.columns.len() - 1 {
@@ -72,6 +76,9 @@ impl<'a> UpdateBuilder<'a> {
                         UpdColumnType::DateTime(datetime) => {
                             query.push_bind(datetime);
                         }
+                        UpdColumnType::Date(date) => {
+                            query.push_bind(date);
+                        },
                     }
 
                     if index < self.columns.len() - 1 {
