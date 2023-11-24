@@ -164,7 +164,7 @@ mod tests {
         ];
 
         let mut conditions: Vec<Condition> = Vec::new();
-        conditions.push(Condition::new(None, "id", "=", Some(5.into()), None));
+        conditions.push(Condition::new(None, "id", "=", 5.into(), None));
         let mut test_query = UpdateBuilder::new("sample_table", columns, conditions, None);
         let result = "UPDATE sample_table\n    SET col1 = $1,\n    col2 = $2,\n    col3 = $3\nWHERE\n    id = $4";
 
@@ -180,7 +180,7 @@ mod tests {
         ];
 
         let mut conditions: Vec<Condition> = Vec::new();
-        conditions.push(Condition::new(None, "id", "=", Some(5.into()), None));
+        conditions.push(Condition::new(None, "id", "=", 5.into(), None));
 
         let mut test_query =
             UpdateBuilder::new("sample_table", columns, conditions, Some("RETURNING id"));

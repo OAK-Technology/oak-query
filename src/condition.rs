@@ -8,7 +8,7 @@ pub struct Condition<'a> {
     pub chain_opr: Option<&'a str>,
     pub column: &'a str,
     pub eq_opr: &'a str,
-    pub value_l: Option<Value>,
+    pub value_l: Value,
     pub value_r: Option<Value>,
 }
 
@@ -22,7 +22,7 @@ impl<'a> Condition<'a> {
         chain_opr: Option<&'a str>,
         column: &'a str,
         eq_opr: &'a str,
-        value_l: Option<Value>,
+        value_l: Value,
         value_r: Option<Value>,
     ) -> Self {
         Self {
@@ -73,34 +73,34 @@ impl<'a> ConditionBuilder<'a> {
 
         for (index, cond) in self.conditions.iter().enumerate() {
             if cond.eq_opr.to_uppercase().contains("BETWEEN") {
-                if let (Some(value_l), Some(value_r)) = (&cond.value_l, &cond.value_r) {
+                if let Some(value_r) = &cond.value_r {
                     if let Some(chain_opr) = cond.chain_opr {
                         query.push(format!(
                             "\n    {0} {1} {2} ",
                             chain_opr, cond.column, cond.eq_opr
                         ));
-                        query.push_bind(value_l);
+                        query.push_bind(cond.value_l.clone());
                         query.push(" AND ");
                         query.push_bind(value_r);
                     } else if index == 0 {
                         query.push("\nWHERE");
                         query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
-                        query.push_bind(value_l);
+                        query.push_bind(cond.value_l.clone());
                         query.push(" AND ");
                         query.push_bind(value_r);
                     }
                 }
-            } else if let Some(value) = &cond.value_l {
+            } else {
                 if let Some(chain_opr) = cond.chain_opr {
                     query.push(format!(
                         "\n    {0} {1} {2} ",
                         chain_opr, cond.column, cond.eq_opr
                     ));
-                    query.push_bind(value);
+                    query.push_bind(cond.value_l.clone());
                 } else if index == 0 {
                     query.push("\nWHERE");
                     query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
-                    query.push_bind(value);
+                    query.push_bind(cond.value_l.clone());
                 }
             }
         }
@@ -141,7 +141,7 @@ mod tests {
             Some(""),
             "test_col",
             "IN",
-            Some(num_list.into()),
+            num_list.into(),
             None,
         ));
         let test_query =
@@ -160,7 +160,7 @@ mod tests {
             None,
             "test_col",
             "BETWEEN",
-            Some(5.into()),
+            5.into(),
             Some(24.into()),
         ));
         let test_query =
@@ -179,7 +179,7 @@ mod tests {
             None,
             "test_col",
             "LIKE",
-            Some("sample".into()),
+            "sample".into(),
             None,
         ));
         let test_query =
@@ -198,7 +198,7 @@ mod tests {
             Some(""),
             "test_col",
             "LIKE",
-            Some("sample".into()),
+            "sample".into(),
             None,
         ));
         let test_query =
@@ -217,7 +217,7 @@ mod tests {
             Some("AND"),
             "test_col",
             "LIKE",
-            Some("sample".into()),
+            "sample".into(),
             None,
         ));
         let test_query =
@@ -245,19 +245,25 @@ mod tests {
             Some("AND"),
             "test_col",
             "LIKE",
-            Some("sample".into()),
+            "sample".into(),
             None,
         ));
         conditions.push(Condition::new(
             Some("OR"),
             "test_col2",
             "=",
-            Some(5.into()),
+            5.into(),
             None,
         ));
 
         // This condition will be ignored because there is no chain operator
-        conditions.push(Condition::new(None, "other_col", "=", Some(7.into()), None));
+        conditions.push(Condition::new(
+            None,
+            "other_col",
+            "=",
+            7.into(),
+            None
+        ));
 
         let order_by = "ORDER BY\n    id DESC";
 
