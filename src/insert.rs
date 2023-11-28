@@ -1,7 +1,10 @@
+
 use serde_json::Value;
 use sqlx::{Postgres, QueryBuilder};
 
-pub type Row = Vec<Option<Value>>;
+use crate::{SqlValue, NaiveChrono};
+
+pub type Row = Vec<Option<SqlValue>>;
 
 pub struct InsertBuilder<'a> {
     pub table: &'a str,
@@ -50,23 +53,35 @@ impl<'a> InsertBuilder<'a> {
 
                 for (col_index, value) in (*row).iter().enumerate() {
                     match value {
-                        Some(opt) => match opt {
-                            Value::Null => {
+                        Some(sql_value) => match sql_value {
+                            SqlValue::GenericValue(Value::Null) => {
                                 query.push("null");
                             },
-                            Value::Bool(v) => { query.push_bind(v); },
-                            Value::Number(v) => {
+                            SqlValue::GenericValue(Value::Bool(v)) => { query.push_bind(v); },
+                            SqlValue::GenericValue(Value::Number(v)) => {
                                 if v.is_i64() || v.is_u64() {
                                     query.push_bind(v.as_i64().unwrap());
                                 } else {
                                     query.push_bind(v.as_f64().unwrap());
                                 }
                             },
-                            Value::String(v) => { query.push_bind(v); },
-                            Value::Array(v) => { query.push_bind(v); },
-                            Value::Object(_) => {
-                                query.push_bind(value);
+                            SqlValue::GenericValue(Value::String(v)) => { query.push_bind(v); },
+                            SqlValue::GenericValue(Value::Array(v)) => { query.push_bind(v); },
+                            SqlValue::GenericValue(Value::Object(_)) => {
+                                if let SqlValue::GenericValue(val) = sql_value {
+                                    query.push_bind(val);
+                                }
                             }
+                            SqlValue::NaiveChrono(naive_chrono) => {
+                                match naive_chrono {
+                                    NaiveChrono::NaiveDate(chrono_value) => {
+                                        query.push_bind(chrono_value);
+                                    },
+                                    NaiveChrono::NaiveDateTime(chrono_value) => {
+                                        query.push_bind(chrono_value);
+                                    },
+                                }
+                            },
                         },
                         None => {
                             query.push("default");
