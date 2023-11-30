@@ -2,7 +2,7 @@ use chrono::{NaiveDateTime, NaiveDate};
 use serde_json::Value;
 use sqlx::{Postgres, QueryBuilder};
 
-use crate::{BaseQuery, Condition, ConditionBuilder};
+use crate::{BaseQuery, Condition, ConditionBuilder, push_jsonvalue};
 
 #[derive(Debug)]
 pub enum UpdColumnType {
@@ -53,7 +53,7 @@ impl<'a> UpdateBuilder<'a> {
 
                     match &column.1 {
                         UpdColumnType::Primitive(primitive) => {
-                            query.push_bind(primitive);
+                            query = push_jsonvalue(primitive.clone(), query);
                         }
                         UpdColumnType::DateTime(datetime) => {
                             query.push_bind(datetime);
@@ -71,7 +71,7 @@ impl<'a> UpdateBuilder<'a> {
 
                     match &column.1 {
                         UpdColumnType::Primitive(primitive) => {
-                            query.push_bind(primitive);
+                            query = push_jsonvalue(primitive.clone(), query);
                         }
                         UpdColumnType::DateTime(datetime) => {
                             query.push_bind(datetime);

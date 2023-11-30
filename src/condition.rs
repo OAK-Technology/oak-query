@@ -1,7 +1,7 @@
 use serde_json::Value;
 use sqlx::{Postgres, QueryBuilder};
 
-use crate::BaseQuery;
+use crate::{BaseQuery, push_jsonvalue};
 
 #[derive(Debug, Clone)]
 pub struct Condition<'a> {
@@ -79,14 +79,18 @@ impl<'a> ConditionBuilder<'a> {
                             "\n    {0} {1} {2} ",
                             chain_opr, cond.column, cond.eq_opr
                         ));
+
+                        query = push_jsonvalue(cond.value_l.clone(), query);
+                        query.push(" AND ");
+                        query = push_jsonvalue(value_r.clone(), query);
                     } else if index == 0 {
                         query.push("\nWHERE");
                         query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
+                        
+                        query = push_jsonvalue(cond.value_l.clone(), query);
+                        query.push(" AND ");
+                        query = push_jsonvalue(value_r.clone(), query);
                     }
-
-                    Self::push_jsonvalue(cond.value_l.clone(), &mut query);
-                    query.push(" AND ");
-                    Self::push_jsonvalue(value_r.clone(), &mut query);
                 }
             } else {
                 if let Some(chain_opr) = cond.chain_opr {
@@ -94,12 +98,12 @@ impl<'a> ConditionBuilder<'a> {
                         "\n    {0} {1} {2} ",
                         chain_opr, cond.column, cond.eq_opr
                     ));
+                    query = push_jsonvalue(cond.value_l.clone(), query);
                 } else if index == 0 {
                     query.push("\nWHERE");
                     query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
+                    query = push_jsonvalue(cond.value_l.clone(), query);
                 }
-
-                Self::push_jsonvalue(cond.value_l.clone(), &mut query);
             }
         }
 
@@ -122,25 +126,6 @@ impl<'a> ConditionBuilder<'a> {
         }
 
         query
-    }
-
-    fn push_jsonvalue(value: Value, query_builder: &mut QueryBuilder<'_, Postgres>) {
-        match value {
-            Value::Null => {},
-            Value::Bool(v) => { query_builder.push_bind(v); },
-            Value::Number(v) => { 
-                if v.is_f64() {
-                    query_builder.push_bind(v.as_f64());
-                }
-
-                if v.is_i64() || v.is_u64() {
-                    query_builder.push_bind(v.as_i64());
-                }
-             },
-            Value::String(v) => { query_builder.push_bind(v); },
-            Value::Array(v) => { query_builder.push_bind(v); },
-            Value::Object(_) => { query_builder.push_bind(value); },
-        }
     }
 }
 
