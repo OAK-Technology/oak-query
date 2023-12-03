@@ -1,15 +1,14 @@
-use serde_json::Value;
 use sqlx::{Postgres, QueryBuilder};
 
-use crate::{BaseQuery, push_jsonvalue};
+use crate::{BaseQuery, SqlValue, push_sqlvalue};
 
 #[derive(Debug, Clone)]
 pub struct Condition<'a> {
     pub chain_opr: Option<&'a str>,
     pub column: &'a str,
     pub eq_opr: &'a str,
-    pub value_l: Value,
-    pub value_r: Option<Value>,
+    pub value_l: SqlValue,
+    pub value_r: Option<SqlValue>,
 }
 
 impl<'a> Condition<'a> {
@@ -22,8 +21,8 @@ impl<'a> Condition<'a> {
         chain_opr: Option<&'a str>,
         column: &'a str,
         eq_opr: &'a str,
-        value_l: Value,
-        value_r: Option<Value>,
+        value_l: SqlValue,
+        value_r: Option<SqlValue>,
     ) -> Self {
         Self {
             chain_opr,
@@ -80,16 +79,16 @@ impl<'a> ConditionBuilder<'a> {
                             chain_opr, cond.column, cond.eq_opr
                         ));
 
-                        query = push_jsonvalue(cond.value_l.clone(), query);
+                        query = push_sqlvalue(cond.value_l.clone(), query);
                         query.push(" AND ");
-                        query = push_jsonvalue(value_r.clone(), query);
+                        query = push_sqlvalue(value_r.clone(), query);
                     } else if index == 0 {
                         query.push("\nWHERE");
                         query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
                         
-                        query = push_jsonvalue(cond.value_l.clone(), query);
+                        query = push_sqlvalue(cond.value_l.clone(), query);
                         query.push(" AND ");
-                        query = push_jsonvalue(value_r.clone(), query);
+                        query = push_sqlvalue(value_r.clone(), query);
                     }
                 }
             } else {
@@ -98,11 +97,11 @@ impl<'a> ConditionBuilder<'a> {
                         "\n    {0} {1} {2} ",
                         chain_opr, cond.column, cond.eq_opr
                     ));
-                    query = push_jsonvalue(cond.value_l.clone(), query);
+                    query = push_sqlvalue(cond.value_l.clone(), query);
                 } else if index == 0 {
                     query.push("\nWHERE");
                     query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
-                    query = push_jsonvalue(cond.value_l.clone(), query);
+                    query = push_sqlvalue(cond.value_l.clone(), query);
                 }
             }
         }

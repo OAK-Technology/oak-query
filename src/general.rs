@@ -9,13 +9,13 @@ pub enum BaseQuery<'a> {
     QueryBuilder(QueryBuilder<'a, Postgres>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NaiveChrono {
     NaiveDate(NaiveDate),
     NaiveDateTime(NaiveDateTime)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SqlValue {
     GenericValue(Value),
     NaiveChrono(NaiveChrono)
@@ -27,8 +27,20 @@ impl From<Value> for SqlValue {
     }
 }
 
+impl From<Vec<Value>> for SqlValue {
+    fn from(value: Vec<Value>) -> Self {
+        Self::GenericValue(value.into())
+    }
+}
+
 impl From<&str> for SqlValue {
     fn from(value: &str) -> Self {
+        Self::GenericValue(Value::String(value.to_string()))
+    }
+}
+
+impl From<&String> for SqlValue {
+    fn from(value: &String) -> Self {
         Self::GenericValue(Value::String(value.to_string()))
     }
 }
@@ -75,6 +87,36 @@ impl From<isize> for SqlValue {
     }
 }
 
+impl From<Vec<i8>> for SqlValue {
+    fn from(value: Vec<i8>) -> Self {
+        Self::GenericValue(value.into())
+    }
+}
+
+impl From<Vec<i16>> for SqlValue {
+    fn from(value: Vec<i16>) -> Self {
+        Self::GenericValue(value.into())
+    }
+}
+
+impl From<Vec<i32>> for SqlValue {
+    fn from(value: Vec<i32>) -> Self {
+        Self::GenericValue(value.into())
+    }
+}
+
+impl From<Vec<i64>> for SqlValue {
+    fn from(value: Vec<i64>) -> Self {
+        Self::GenericValue(value.into())
+    }
+}
+
+impl From<Vec<isize>> for SqlValue {
+    fn from(value: Vec<isize>) -> Self {
+        Self::GenericValue(value.into())
+    }
+}
+
 impl From<NaiveDate> for SqlValue {
     fn from(value: NaiveDate) -> Self {
         Self::NaiveChrono(NaiveChrono::NaiveDate(value))
@@ -107,4 +149,18 @@ pub fn push_jsonvalue(value: Value, mut query_builder: QueryBuilder<'_, Postgres
     }
 
     query_builder
+}
+
+pub fn push_sqlvalue(value: SqlValue, mut query_builder: QueryBuilder<'_, Postgres>) -> QueryBuilder<'_, Postgres> {
+    match value {
+        SqlValue::GenericValue(v) => push_jsonvalue(v, query_builder),
+        SqlValue::NaiveChrono(naive_chrono) => {
+            match naive_chrono {
+                NaiveChrono::NaiveDate(nd) => { query_builder.push_bind(nd); },
+                NaiveChrono::NaiveDateTime(ndt) => { query_builder.push_bind(ndt); },
+            }
+            
+            return query_builder
+        },
+    }
 }
