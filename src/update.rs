@@ -1,17 +1,8 @@
-use chrono::{NaiveDateTime, NaiveDate};
-use serde_json::Value;
 use sqlx::{Postgres, QueryBuilder};
 
-use crate::{BaseQuery, Condition, ConditionBuilder, push_jsonvalue};
+use crate::{BaseQuery, Condition, ConditionBuilder, SqlValue, push_sqlvalue};
 
-#[derive(Debug)]
-pub enum UpdColumnType {
-    Primitive(Value),
-    DateTime(NaiveDateTime),
-    Date(NaiveDate),
-}
-
-pub type Column<'a> = (&'a str, UpdColumnType);
+pub type Column<'a> = (&'a str, SqlValue);
 
 #[derive(Debug)]
 pub struct UpdateBuilder<'a> {
@@ -50,36 +41,14 @@ impl<'a> UpdateBuilder<'a> {
             for (index, column) in self.columns.iter().enumerate() {
                 if index == 0 {
                     query.push(format!("\n    SET {0} = ", column.0));
-
-                    match &column.1 {
-                        UpdColumnType::Primitive(primitive) => {
-                            query = push_jsonvalue(primitive.clone(), query);
-                        }
-                        UpdColumnType::DateTime(datetime) => {
-                            query.push_bind(datetime);
-                        }
-                        UpdColumnType::Date(date) => {
-                            query.push_bind(date);
-                        },
-                    }
+                    query = push_sqlvalue(column.1.clone(), query);
 
                     if index < self.columns.len() - 1 {
                         query.push(",");
                     }
                 } else {
                     query.push(format!("\n    {0} = ", column.0));
-
-                    match &column.1 {
-                        UpdColumnType::Primitive(primitive) => {
-                            query = push_jsonvalue(primitive.clone(), query);
-                        }
-                        UpdColumnType::DateTime(datetime) => {
-                            query.push_bind(datetime);
-                        }
-                        UpdColumnType::Date(date) => {
-                            query.push_bind(date);
-                        },
-                    }
+                    query = push_sqlvalue(column.1.clone(), query);
 
                     if index < self.columns.len() - 1 {
                         query.push(",");
@@ -112,11 +81,11 @@ impl<'a> UpdateBuilder<'a> {
 mod tests {
     use chrono::Utc;
 
-    use crate::{Column, Condition, UpdColumnType, UpdateBuilder};
+    use crate::{Column, Condition, UpdateBuilder};
 
     #[test]
     fn update_datetime() {
-        let columns: Vec<Column> = vec![("col1", UpdColumnType::DateTime(Utc::now().naive_utc()))];
+        let columns: Vec<Column> = vec![("col1", Utc::now().naive_utc().into())];
 
         let conditions: Vec<Condition> = Vec::new();
         let test_query = UpdateBuilder::new("sample_table", columns, conditions, None);
@@ -128,9 +97,9 @@ mod tests {
     #[test]
     fn update_only() {
         let columns: Vec<Column> = vec![
-            ("col1", UpdColumnType::Primitive(5.into())),
-            ("col2", UpdColumnType::Primitive(3.into())),
-            ("col3", UpdColumnType::Primitive(7.into())),
+            ("col1", 5.into()),
+            ("col2", 3.into()),
+            ("col3", 7.into()),
         ];
 
         let conditions: Vec<Condition> = Vec::new();
@@ -143,9 +112,9 @@ mod tests {
     #[test]
     fn update_with_empty_conditions() {
         let columns: Vec<Column> = vec![
-            ("col1", UpdColumnType::Primitive(5.into())),
-            ("col2", UpdColumnType::Primitive(3.into())),
-            ("col3", UpdColumnType::Primitive(7.into())),
+            ("col1", 5.into()),
+            ("col2", 3.into()),
+            ("col3", 7.into()),
         ];
 
         let conditions: Vec<Condition> = Vec::new();
@@ -158,9 +127,9 @@ mod tests {
     #[test]
     fn update_with_conditions() {
         let columns: Vec<Column> = vec![
-            ("col1", UpdColumnType::Primitive(5.into())),
-            ("col2", UpdColumnType::Primitive(3.into())),
-            ("col3", UpdColumnType::Primitive(7.into())),
+            ("col1", 5.into()),
+            ("col2", 3.into()),
+            ("col3", 7.into()),
         ];
 
         let mut conditions: Vec<Condition> = Vec::new();
@@ -174,9 +143,9 @@ mod tests {
     #[test]
     fn update_with_conditions_with_end() {
         let columns: Vec<Column> = vec![
-            ("col1", UpdColumnType::Primitive(5.into())),
-            ("col2", UpdColumnType::Primitive(3.into())),
-            ("col3", UpdColumnType::Primitive(7.into())),
+            ("col1", 5.into()),
+            ("col2", 3.into()),
+            ("col3", 7.into()),
         ];
 
         let mut conditions: Vec<Condition> = Vec::new();
