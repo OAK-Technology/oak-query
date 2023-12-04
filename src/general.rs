@@ -21,6 +21,12 @@ pub enum SqlValue {
     NaiveChrono(NaiveChrono)
 }
 
+impl From<&Value> for SqlValue {
+    fn from(value: &Value) -> Self {
+        Self::GenericValue(value.clone())
+    }
+}
+
 impl From<Value> for SqlValue {
     fn from(value: Value) -> Self {
         Self::GenericValue(value)
