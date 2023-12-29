@@ -1,3 +1,4 @@
+use serde_json::Value;
 use sqlx::{Postgres, QueryBuilder};
 
 use crate::{BaseQuery, SqlValue, push_sqlvalue};
@@ -71,37 +72,64 @@ impl<'a> ConditionBuilder<'a> {
         }
 
         for (index, cond) in self.conditions.iter().enumerate() {
-            if cond.eq_opr.to_uppercase().contains("BETWEEN") {
-                if let Some(value_r) = &cond.value_r {
+            match cond.eq_opr.to_uppercase().as_str() {
+                "BETWEEN" => {
+                    if let Some(value_r) = &cond.value_r {
+                        if let Some(chain_opr) = cond.chain_opr {
+                            query.push(format!(
+                                "\n    {0} {1} {2} ",
+                                chain_opr, cond.column, cond.eq_opr
+                            ));
+
+                            query = push_sqlvalue(cond.value_l.clone(), query);
+                            query.push(" AND ");
+                            query = push_sqlvalue(value_r.clone(), query);
+                        } else if index == 0 {
+                            query.push("\nWHERE");
+                            query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
+                            
+                            query = push_sqlvalue(cond.value_l.clone(), query);
+                            query.push(" AND ");
+                            query = push_sqlvalue(value_r.clone(), query);
+                        }
+                    }
+                },
+
+                operator if operator.contains("LIKE") => {
                     if let Some(chain_opr) = cond.chain_opr {
                         query.push(format!(
                             "\n    {0} {1} {2} ",
                             chain_opr, cond.column, cond.eq_opr
                         ));
-
                         query = push_sqlvalue(cond.value_l.clone(), query);
-                        query.push(" AND ");
-                        query = push_sqlvalue(value_r.clone(), query);
                     } else if index == 0 {
                         query.push("\nWHERE");
                         query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
                         
-                        query = push_sqlvalue(cond.value_l.clone(), query);
-                        query.push(" AND ");
-                        query = push_sqlvalue(value_r.clone(), query);
+                        let like_value: String;
+
+                        if let SqlValue::GenericValue(Value::String(value)) = cond.value_l.clone() {
+                            like_value = format!("%{value}%");
+                        } else {
+                            like_value = String::new();
+                        }
+
+                        query = push_sqlvalue(like_value.into(), query);
                     }
-                }
-            } else {
-                if let Some(chain_opr) = cond.chain_opr {
-                    query.push(format!(
-                        "\n    {0} {1} {2} ",
-                        chain_opr, cond.column, cond.eq_opr
-                    ));
-                    query = push_sqlvalue(cond.value_l.clone(), query);
-                } else if index == 0 {
-                    query.push("\nWHERE");
-                    query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
-                    query = push_sqlvalue(cond.value_l.clone(), query);
+                },
+
+                _ => {
+                    if let Some(chain_opr) = cond.chain_opr {
+                        query.push(format!(
+                            "\n    {0} {1} {2} ",
+                            chain_opr, cond.column, cond.eq_opr
+                        ));
+                        query = push_sqlvalue(cond.value_l.clone(), query);
+                    } else if index == 0 {
+                        query.push("\nWHERE");
+                        query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
+                        query = push_sqlvalue(cond.value_l.clone(), query);
+                    }
                 }
             }
         }
