@@ -35,6 +35,7 @@ impl<'a> Condition<'a> {
     }
 }
 
+/// if only one condition provided then chain operator ignored for that condition
 pub struct ConditionBuilder<'a> {
     pub base_query: BaseQuery<'a>,
     pub conditions: &'a Vec<Condition<'a>>,
@@ -119,17 +120,17 @@ impl<'a> ConditionBuilder<'a> {
                 },
 
                 _ => {
-                    if let Some(chain_opr) = cond.chain_opr {
+                    if self.conditions.len() == 1 || index == 0 {
+                        query.push("\nWHERE");
+                        query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
+                        query = push_sqlvalue(cond.value_l.clone(), query);
+                    } else if let Some(chain_opr) = cond.chain_opr {
                         query.push(format!(
                             "\n    {0} {1} {2} ",
                             chain_opr, cond.column, cond.eq_opr
                         ));
                         query = push_sqlvalue(cond.value_l.clone(), query);
-                    } else if index == 0 {
-                        query.push("\nWHERE");
-                        query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
-                        query = push_sqlvalue(cond.value_l.clone(), query);
-                    }
+                    } 
                 }
             }
         }
@@ -160,26 +161,6 @@ impl<'a> ConditionBuilder<'a> {
 mod tests {
     use crate::condition::{Condition, ConditionBuilder};
     use crate::general::BaseQuery;
-
-    #[test]
-    fn in_without_where() {
-        let mut conditions: Vec<Condition> = Vec::new();
-        let num_list = vec![3, 5, 7];
-
-        conditions.push(Condition::new(
-            Some(""),
-            "test_col",
-            "IN",
-            num_list.into(),
-            None,
-        ));
-        let test_query =
-            ConditionBuilder::new(BaseQuery::Sql(""), &conditions, None, None, None, None);
-
-        let result = "\n     test_col IN $1";
-
-        assert_eq!(test_query.build().into_sql(), result);
-    }
 
     #[test]
     fn between_with_where() {
