@@ -13,9 +13,9 @@ pub struct Condition<'a> {
 }
 
 impl<'a> Condition<'a> {
-    /// chain_opr: AND, OR, (may etc)
+    /// chain_opr: AND, OR, (may etc.)
     /// column: column that condition belongs for
-    /// eq_opr: >, <, >=, <=, LIKE, NOT LIKE, IN, NOT IN, BETWEEN, NOT BETWEEN and etc
+    /// eq_opr: =, >, <, >=, <=, LIKE, NOT LIKE, IN, NOT IN, BETWEEN, NOT BETWEEN etc.
     /// value_l and value_r: is used for BETWEN operator ex.: `WHERE sample_col BETWEEN value_l and value_r`
     /// value for other operators is value_l
     pub fn new(
@@ -35,7 +35,7 @@ impl<'a> Condition<'a> {
     }
 }
 
-/// if only one condition provided then chain operator ignored for that condition
+/// if only one condition provided, then chain operator ignored for that condition
 pub struct ConditionBuilder<'a> {
     pub base_query: BaseQuery<'a>,
     pub conditions: &'a Vec<Condition<'a>>,
@@ -76,7 +76,14 @@ impl<'a> ConditionBuilder<'a> {
             match cond.eq_opr.to_uppercase().as_str() {
                 "BETWEEN" => {
                     if let Some(value_r) = &cond.value_r {
-                        if let Some(chain_opr) = cond.chain_opr {
+                        if index == 0 {
+                            query.push("\nWHERE");
+                            query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
+                            
+                            query = push_sqlvalue(cond.value_l.clone(), query);
+                            query.push(" AND ");
+                            query = push_sqlvalue(value_r.clone(), query);
+                        } else if let Some(chain_opr) = cond.chain_opr {
                             query.push(format!(
                                 "\n    {0} {1} {2} ",
                                 chain_opr, cond.column, cond.eq_opr
@@ -85,25 +92,12 @@ impl<'a> ConditionBuilder<'a> {
                             query = push_sqlvalue(cond.value_l.clone(), query);
                             query.push(" AND ");
                             query = push_sqlvalue(value_r.clone(), query);
-                        } else if index == 0 {
-                            query.push("\nWHERE");
-                            query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
-                            
-                            query = push_sqlvalue(cond.value_l.clone(), query);
-                            query.push(" AND ");
-                            query = push_sqlvalue(value_r.clone(), query);
                         }
                     }
                 },
 
                 operator if operator.contains("LIKE") => {
-                    if let Some(chain_opr) = cond.chain_opr {
-                        query.push(format!(
-                            "\n    {0} {1} {2} ",
-                            chain_opr, cond.column, cond.eq_opr
-                        ));
-                        query = push_sqlvalue(cond.value_l.clone(), query);
-                    } else if index == 0 {
+                    if index == 0 {
                         query.push("\nWHERE");
                         query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
                         
@@ -116,11 +110,17 @@ impl<'a> ConditionBuilder<'a> {
                         }
 
                         query = push_sqlvalue(like_value.into(), query);
+                    } else if let Some(chain_opr) = cond.chain_opr {
+                        query.push(format!(
+                            "\n    {0} {1} {2} ",
+                            chain_opr, cond.column, cond.eq_opr
+                        ));
+                        query = push_sqlvalue(cond.value_l.clone(), query);
                     }
                 },
 
                 _ => {
-                    if self.conditions.len() == 1 || index == 0 {
+                    if index == 0 {
                         query.push("\nWHERE");
                         query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
                         query = push_sqlvalue(cond.value_l.clone(), query);
@@ -214,7 +214,7 @@ mod tests {
         let test_query =
             ConditionBuilder::new(BaseQuery::Sql(""), &conditions, None, None, None, None);
 
-        let result = "\n     test_col LIKE $1";
+        let result = "\nWHERE\n    test_col LIKE $1";
 
         assert_eq!(test_query.build().into_sql(), result);
     }
@@ -233,7 +233,7 @@ mod tests {
         let test_query =
             ConditionBuilder::new(BaseQuery::Sql(""), &conditions, None, None, None, None);
 
-        let result = "\n    AND test_col LIKE $1";
+        let result = "\nWHERE\n    test_col LIKE $1";
 
         assert_eq!(test_query.build().into_sql(), result);
     }
@@ -287,7 +287,8 @@ mod tests {
         );
 
         let result = r#"
-    AND test_col LIKE $1
+WHERE
+    test_col LIKE $1
     OR test_col2 = $2
 ORDER BY
     id DESC
