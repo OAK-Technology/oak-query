@@ -93,6 +93,12 @@ impl From<isize> for SqlValue {
     }
 }
 
+impl From<u64> for SqlValue {
+    fn from(value: u64) -> Self {
+        Self::GenericValue(Value::Number(Number::from(value as i64)))
+    }
+}
+
 impl From<Vec<i8>> for SqlValue {
     fn from(value: Vec<i8>) -> Self {
         Self::GenericValue(value.into())
