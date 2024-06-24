@@ -1,7 +1,7 @@
 use serde_json::Value;
 use sqlx::{Postgres, QueryBuilder};
 
-use crate::{BaseQuery, SqlValue, push_sqlvalue};
+use crate::{BaseQuery, SqlValue, push_sqlvalue, push_jsonvalue};
 
 #[derive(Debug, Clone)]
 pub struct Condition<'a> {
@@ -96,6 +96,26 @@ impl<'a> ConditionBuilder<'a> {
                     }
                 },
 
+                "IN" => {
+                    if index == 0 {
+                        if let SqlValue::GenericValue(Value::Array(item_list)) = cond.value_l.clone() {
+                            query.push("\nWHERE");
+                            query.push(format!("\n    {0} {1} ", cond.column, cond.eq_opr));
+
+                            query = Self::push_as_sql_tuple(item_list, query);
+                        }
+                    } else if let Some(chain_opr) = cond.chain_opr {
+                        if let SqlValue::GenericValue(Value::Array(item_list)) = cond.value_l.clone() {
+                            query.push(format!(
+                                "\n    {0} {1} {2} ",
+                                chain_opr, cond.column, cond.eq_opr
+                            ));
+
+                            query = Self::push_as_sql_tuple(item_list, query);
+                        }
+                    }
+                },
+
                 operator if operator.contains("LIKE") => {
                     if index == 0 {
                         query.push("\nWHERE");
@@ -152,6 +172,22 @@ impl<'a> ConditionBuilder<'a> {
         if let Some(ending) = self.end {
             query.push(format!("\n{}", ending));
         }
+
+        query
+    }
+
+    fn push_as_sql_tuple(item_list: Vec<Value>, mut query: QueryBuilder<'a, Postgres>) -> QueryBuilder<'a, Postgres> {
+        query.push("(");
+        
+        for (index, item) in item_list.iter().enumerate() {
+            query = push_jsonvalue(item.clone(), query);
+
+            if index < item_list.len() - 1 {
+                query.push(", ");
+            }
+        }
+
+        query.push(")");
 
         query
     }
