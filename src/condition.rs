@@ -237,6 +237,27 @@ mod tests {
     }
 
     #[test]
+    fn single_condition_with_in_operator() {
+        let mut conditions: Vec<Condition> = Vec::new();
+        
+        let list: Vec<&str> = vec!["ab", "cd", "ef"];
+
+        conditions.push(Condition::new(
+            None,
+            "test_col",
+            "IN",
+            list.into(),
+            None,
+        ));
+        let test_query =
+            ConditionBuilder::new(BaseQuery::Sql(""), &conditions, None, None, None, None);
+
+        let result = "\nWHERE\n    test_col IN ($1, $2, $3)";
+
+        assert_eq!(test_query.build().into_sql(), result);
+    }
+
+    #[test]
     fn single_condition_without_where() {
         let mut conditions: Vec<Condition> = Vec::new();
 
