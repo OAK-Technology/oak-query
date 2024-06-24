@@ -57,6 +57,24 @@ impl From<String> for SqlValue {
     }
 }
 
+impl From<Vec<&str>> for SqlValue {
+    fn from(value: Vec<&str>) -> Self {
+        Self::GenericValue(value.into())
+    }
+}
+
+impl From<Vec<String>> for SqlValue {
+    fn from(value: Vec<String>) -> Self {
+        Self::GenericValue(value.into())
+    }
+}
+
+impl From<Vec<&String>> for SqlValue {
+    fn from(value: Vec<&String>) -> Self {
+        Self::GenericValue(Value::from(value.iter().cloned().map(Into::into).collect::<Vec<String>>()))
+    }
+}
+
 impl From<bool> for SqlValue {
     fn from(value: bool) -> Self {
         Self::GenericValue(Value::Bool(value))
